@@ -1,0 +1,110 @@
+---
+title: "Credit Card Fraud"
+author: "Tyler Drover"
+date: "12/05/2022"
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Our Code
+
+```
+library(caret)
+library(rpart)
+library(dplyr)
+library(ROSE)
+library(randomForest)
+library(rpart.plot)
+library(xgboost)
+library(ggplot2)
+
+file_name<- paste(getwd(),"/fraudTrain.csv",sep='') 
+credit_card<-read.csv(file_name)
+
+credit_card$is_fraud = as.factor(credit_card$is_fraud)
+credit_card.true = credit_card[credit_card$is_fraud == 0,]
+credit_card.false = credit_card[credit_card$is_fraud == 1,]
+```
+
+## Pie Chart Code
+
+```
+labels = c("NON_FRAUD","FRAUD")
+labels = paste(labels,round(prop.table(table(credit_card$is_fraud))*100,2))
+labels = paste0(labels,"%")
+pie(table(credit_card$is_fraud),labels,col = c("blue","red"),
+    main = "Pie Chart of Credit Card Transactions")
+```
+
+## Output
+
+```{r Pie Chart, echo=FALSE, warning=FALSE}
+file_name<- paste(getwd(),"/fraudTrain.csv",sep='') 
+credit_card<-read.csv(file_name)
+
+credit_card$is_fraud = as.factor(credit_card$is_fraud)
+credit_card.true = credit_card[credit_card$is_fraud == 0,]
+credit_card.false = credit_card[credit_card$is_fraud == 1,]
+
+labels = c("NON_FRAUD","FRAUD")
+labels = paste(labels,round(prop.table(table(credit_card$is_fraud))*100,2))
+labels = paste0(labels,"%")
+pie(table(credit_card$is_fraud),labels,col = c("blue","red"),
+    main = "Pie Chart of Credit Card Transactions")
+```
+
+
+
+## Data Splitting Code
+This splits the data for 80% to train the model, and 20% to test it
+
+```
+rows = nrow(credit_card)
+cols = ncol(credit_card)
+
+set.seed(123)
+credit_card = credit_card[sample(rows),1:cols]
+ntr = as.integer(round(0.8*rows))
+
+credit_card.train = credit_card[1:ntr,1:cols] # for train
+credit_card.test = credit_card[(ntr+1):rows,-cols] # for test input
+credit_card.testc = credit_card[(ntr+1):rows,cols] # for test data CLass
+
+credit_card.testc = as.data.frame(credit_card.testc)
+colnames(credit_card.testc)[1] = c("is_fraud")
+```
+## Random Forest Algorithm
+Random Forest is a learning algorithm that takes grows and combines decision trees to make a forest
+
+It predicts by taking averages from multiple trees
+
+The more trees the more precise it becomes
+
+```
+samp = as.integer(0.49*ntr)
+rF = randomForest(is_fraud ~ . ,data =credit_card.train,ntree = 39,
+                  samplesize = samp,maxnodes=44)
+rF_pred = predict(rF,credit_card.test)
+credit_card.testc$Pred = rF_pred
+
+print(confusionMatrix(credit_card.testc$Pred,credit_card.testc$is_fraud))
+```
+
+## Output
+![](ConfusionMatrix.png)
+
+
+## What It Means
+It predicted it was not fraud correctly 257,859 times     
+
+Predicted it was fraud when it wasn't fraud 19 times     
+
+Predicted it wasn't fraud when it was 1390 times        
+
+And it predicted it was fraud correctly 67 times       
+
+Its accuracy was 99.46%
+
